@@ -79,3 +79,43 @@
                 if (!geminiResponse.ok) {
                     const errorData = await geminiResponse.json();
                     console.error("API 서버 에러:", errorData);
+                    alert(`요청이 거절되었습니다 (에러코드 ${geminiResponse.status}). API 키 권한을 확인해주세요.`);
+                    document.getElementById('loading').style.display = 'none';
+                    return; 
+                }
+
+                const geminiData = await geminiResponse.json();
+                
+                // 정상적으로 답변이 왔을 때만 화면에 출력
+                if (geminiData.candidates && geminiData.candidates.length > 0) {
+                    const aiReportText = geminiData.candidates[0].content.parts[0].text;
+                    document.getElementById('resultContent').innerHTML = marked.parse(aiReportText);
+                    document.getElementById('resultBox').style.display = 'block';
+
+                    // 구글 시트 저장 (실패해도 화면 출력에는 영향 안 주도록 분리)
+                    try {
+                        fetch(APPS_SCRIPT_URL, {
+                            method: 'POST',
+                            mode: 'no-cors',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                department: department,
+                                question: question,
+                                ai_response: aiReportText
+                            })
+                        });
+                    } catch(e) {
+                        console.log("구글 시트 저장 실패", e);
+                    }
+                }
+
+            } catch (error) {
+                alert("오류가 발생했습니다. 개발자 도구(F12) 콘솔을 확인해주세요.");
+                console.error("전체 에러 내역:", error);
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
