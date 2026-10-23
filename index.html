@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>(주)유니에스 AI 노무 검토 시스템</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        body { font-family: 'Malgun Gothic', sans-serif; background-color: #f4f7f6; color: #333; line-height: 1.6; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h1 { color: #1a365d; text-align: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; }
+        label { font-weight: bold; display: block; margin-top: 20px; }
+        input, textarea { width: 100%; padding: 10px; margin-top: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        button { background-color: #2b6cb0; color: white; border: none; padding: 12px 20px; font-size: 16px; border-radius: 4px; cursor: pointer; width: 100%; margin-top: 20px; font-weight: bold; }
+        button:hover { background-color: #2c5282; }
+        #loading { text-align: center; display: none; margin-top: 20px; font-weight: bold; color: #d69e2e; }
+        #resultBox { margin-top: 30px; padding: 20px; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 4px; display: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>AI 노무 법률 검토 시스템</h1>
+        
+        <label for="department">소속 지점 / 부서</label>
+        <input type="text" id="department" placeholder="예: 경영개선추진실 노무전략팀">
+        
+        <label for="question">질의 내용 (사실관계)</label>
+        <textarea id="question" rows="5" placeholder="발생한 노무 이슈나 궁금한 점을 구체적으로 적어주세요."></textarea>
+        
+        <button onclick="generateReport()">검토 보고서 생성 (AI)</button>
+        
+        <div id="loading">공인노무사의 시각으로 관련 법령과 판례를 검토 중입니다... 잠시만 기다려주세요.</div>
+        
+        <div id="resultBox">
+            <h2 style="color:#2b6cb0; margin-top:0;">노무 법률 검토 보고서</h2>
+            <div id="resultContent"></div>
+        </div>
+    </div>
+
+    <script>
+        // ★여기 아래 두 줄의 따옴표("") 안에 발급받은 키와 URL을 붙여넣으세요★
+        const GEMINI_API_KEY = "AQ.Ab8RN6JT5eFVh__DOBR50NU6UmQVLGSRQC1lAdmHHt-dzxI90g";
+        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw4BSmkzeI_DAfhcCCzrIdTdblbzn5tdC5hP29UHucnox_l4G738k0s-ZBXTHCzPefepw/exec";
+
+        const systemPrompt = `당신은 (주)유니에스 경영개선추진실 노무전략팀 소속의 10년 차 이상 공인노무사입니다. 사내 직원이나 현업 부서 담당자가 입력한 노무 관련 질의나 사실관계를 분석하여, 경영진이나 실무자가 즉시 의사결정에 활용할 수 있는 '법률 검토 보고서'를 작성하십시오.
+[작성 원칙]
+1. 전문가적이고 단호하며 신뢰감 있는 비즈니스 톤 유지
+2. 현행 대한민국 노동관계법령(근로기준법 등)과 고용노동부 행정해석, 관련 판례 근거 제시
+3. 문서 양식은 개조식(Bullet points)과 표를 적극 활용
+[출력 목차]
+1. 질의 요지 / 2. 관련 법령 및 판단 기준 / 3. 법률 검토 의견 / 4. 실무적 권고 (Action Plan)`;
+
+        async function generateReport() {
+            const department = document.getElementById('department').value;
+            const question = document.getElementById('question').value;
+            
+            if(!department || !question) {
+                alert("소속 부서와 질의 내용을 모두 입력해주세요.");
+                return;
+            }
+
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('resultBox').style.display = 'none';
+
+            try {
+                const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+                
+                const geminiResponse = await fetch(geminiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        system_instruction: { parts: [{ text: systemPrompt }] },
+                        contents: [{ parts: [{ text: `[소속]: ${department}\n[질의]: ${question}` }] }]
+                    })
+                });
+
+                const geminiData = await geminiResponse.json();
+                const aiReportText = geminiData.candidates[0].content.parts[0].text;
+
+                document.getElementById('resultContent').innerHTML = marked.parse(aiReportText);
+                document.getElementById('resultBox').style.display = 'block';
+
+                await fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        department: department,
+                        question: question,
+                        ai_response: aiReportText
+                    })
+                });
+
+            } catch (error) {
+                alert("오류가 발생했습니다. 관리자에게 문의해주세요.");
+                console.error(error);
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
