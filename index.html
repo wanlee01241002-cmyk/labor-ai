@@ -63,7 +63,7 @@
 
             try {
                 const cleanApiKey = GEMINI_API_KEY.trim();
-                const geminiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=" + cleanApiKey;
+                const geminiUrl = "[https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=](https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=)" + cleanApiKey;
                 
                 const geminiResponse = await fetch(geminiUrl, {
                     method: 'POST',
