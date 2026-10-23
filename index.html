@@ -38,7 +38,6 @@
     </div>
 
     <script>
-        // ★여기 아래 두 줄의 따옴표("") 안에 발급받은 키와 URL을 붙여넣으세요★
         const GEMINI_API_KEY = "AQ.Ab8RN6KULP3TOwJugPjA_ldNLK4UaDqA_NrycXVFONuij_j1kw";
         const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw4BSmkzeI_DAfhcCCzrIdTdblbzn5tdC5hP29UHucnox_l4G738k0s-ZBXTHCzPefepw/exec";
 
@@ -63,7 +62,9 @@
             document.getElementById('resultBox').style.display = 'none';
 
             try {
-                const geminiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=)" + GEMINI_API_KEY;
+                // 오타 수정 및 공백 제거
+                const cleanApiKey = GEMINI_API_KEY.trim();
+                const geminiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + cleanApiKey;
                 
                 const geminiResponse = await fetch(geminiUrl, {
                     method: 'POST',
@@ -74,28 +75,7 @@
                     })
                 });
 
-                const geminiData = await geminiResponse.json();
-                const aiReportText = geminiData.candidates[0].content.parts[0].text;
-
-                document.getElementById('resultContent').innerHTML = marked.parse(aiReportText);
-                document.getElementById('resultBox').style.display = 'block';
-
-                await fetch(APPS_SCRIPT_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        department: department,
-                        question: question,
-                        ai_response: aiReportText
-                    })
-                });
-
-            } catch (error) {
-                alert("오류가 발생했습니다. 관리자에게 문의해주세요.");
-                console.error(error);
-            } finally {
-                document.getElementById('loading').style.display = 'none';
-            }
-        }
-    </script>
-</body>
-</html>
+                // 에러 방어 코드: 400, 403, 404 에러 발생 시 알림창 띄우기
+                if (!geminiResponse.ok) {
+                    const errorData = await geminiResponse.json();
+                    console.error("API 서버 에러:", errorData);
